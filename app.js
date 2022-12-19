@@ -4,9 +4,24 @@ const express = require("express");
 
 const app = express();
 
+const Session = require('express-session');
+const FileStore = require('session-file-store')(Session);
+
+const path = require('path');
 
 
 app.use(express.json());
+
+app.use(Session({
+  store: new FileStore({
+    path: path.join(__dirname, '/tmp'),
+    encrypt: true
+  }),
+  secret: 'Super Secret !',
+  resave: true,
+  saveUninitialized: true,
+  name: 'sessionId'
+}));
 
 const port = process.env.APP_PORT ?? 5000;
 
@@ -15,6 +30,7 @@ const welcome = (req, res) => {
 };
 
 app.get("/", welcome);
+
 
 const movieHandlers = require("./movieHandlers");
 
@@ -35,11 +51,19 @@ app.post("/api/users", hashPassword, userHandlers.postUser);
 app.post(
   "/api/login",
   userHandlers.getUserByEmailWithPasswordAndPassToNext, verifyPassword
-);
-
-app.use(verifyToken);
-
-app.post("/api/movies", verifyToken, movieHandlers.postMovie);
+  );
+  
+  app.use(verifyToken);
+  
+  app.get("/session-in", (req, res) => {
+    req.session.song = "be bop a lula";
+    res.send('coucou');
+  });
+  app.get("/session-out", (req, res) => {
+    res.send(req.session.song);
+  });
+  
+  app.post("/api/movies", verifyToken, movieHandlers.postMovie);
 app.put("/api/movies/:id", movieHandlers.updateMovie);
 app.delete("/api/movies/:id", movieHandlers.deleteMovie);
 
